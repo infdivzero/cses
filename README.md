@@ -1,2 +1,4 @@
 # cses
 A system for emulating computer systems. Doesn't actually emulate the components yet. Written in C and uses the cJSON library. This current pre-prototype version can load shared objects into an array of component data structures and calls the init, loop, and quit functions of each plugin for each component instance using a json config file specifying the architecture of the computer system to emulate. Proper intercomponent linkage and multisystem support has not yet been implemented. There's no real documentation yet either, but eventually the code should be able to explain most of itself
+
+After the prototype has been implemented, multisystem support and a management and control interface will be implemented. After that, I will write a CPU plugin using my Bacon-16 instruction set and dig up the assemblerhttps://github.com/infdivzero 
