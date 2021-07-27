@@ -8,6 +8,7 @@
 #include "cJSON.h"
 
 //clock frequencies are emulated by the plugins
+//^^^ emulation standard library?  (estdlib.h)
 //what about multiple systems in one process? Live interaction and management?
 //gotta look into daemons and ipc
 //also gotta figure out composite links for bandwidth >64 bits
@@ -98,7 +99,7 @@ char* pathcat(char *dir, char *file) //ret must be freed externally
 
 static inline int errcond(int cond, unsigned int *err, unsigned int code) //code must be >0 for error
 {
-    return cond && !*err? 1 : !(*err = code);
+    return cond && !*err? 1 : !(*err = code); //fun piece of code
 }
 
 int main(int argc, char **argv)
@@ -133,7 +134,7 @@ int main(int argc, char **argv)
         
         if(config && !err)
         {
-            //would like to write a programmable parser to make config reading more flexible
+            //would like to write a programmable parser control to make config reading more flexible and less redundant
             cJSON *item;
             cJSON *arr;
             char *plugindir, *datadir;
