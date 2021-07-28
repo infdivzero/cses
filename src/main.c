@@ -26,11 +26,20 @@
 
 //write the programmable parser before implementing multivm
 
-/* defs */
+/* estdlib.h */
+
 typedef struct {
     size_t len;
     uint8_t *data;
 } page_t;
+
+typedef struct {
+    size_t type,    //interface type. Must be equal in both interfaces in a link definition for linkage to occur
+           linkmax, //maximum number of interfaces allowed in one link definition entry
+           linkidx; //optional, not used by core but can be useful for plugins
+} iface_rule;
+
+/* defs */
 
 typedef void (*pl_func)(uint64_t **link_ptrs, size_t linkc, page_t *pages, size_t pagec);
 
@@ -61,6 +70,7 @@ typedef struct {
 } link_def;
 
 /* functions */
+
 int ldfile(char *path, char **out_data, size_t *out_len)
 {
     int err = 0;
@@ -88,7 +98,7 @@ int ldfile(char *path, char **out_data, size_t *out_len)
     return err; //0 on success
 }
 
-char* pathcat(char *dir, char *file) //ret must be freed externally
+char* pathcat(char *dir, char *file) //ret must be freed
 {
     char *ret = malloc(strlen(file) + strlen(dir) + 2);
     strcpy(ret, dir);
@@ -287,6 +297,9 @@ int main(int argc, char **argv)
                     {
                         link_def linkdef;
                         
+                        linkdef.ifaces = malloc(0);
+                        linkdef.ifacec = 0;
+                        
                         //parse linkdef
                         for(size_t j = 0; j < cJSON_GetArraySize(link); j++)
                         {
@@ -298,13 +311,10 @@ int main(int argc, char **argv)
                             obji = cJSON_GetObjectItem(obj, "vm");
                             if(errcond(cJSON_IsString(obji), &err, 1))
                             {
-                                char *tmp = cJSON_GetStringValue(obji);
-                                ifacedef.vm_len = strlen(tmp);
+                                char *str = cJSON_GetStringValue(obji);
+                                ifacedef.vm_len = strlen(str);
                                 ifacedef.vm = malloc(++ifacedef.vm_len);
-                                strcpy(ifacedef.vm, tmp);
-                                
-                                printf("%s\n", ifacedef.vm); //remove this temporary test
-                                free(ifacedef.vm); //this too. Move to main temp free
+                                strcpy(ifacedef.vm, str);
                             }
                             
                             obji = cJSON_GetObjectItem(obj, "component");
@@ -314,9 +324,6 @@ int main(int argc, char **argv)
                                 ifacedef.component_len = strlen(tmp);
                                 ifacedef.component = malloc(++ifacedef.component_len);
                                 strcpy(ifacedef.component, tmp);
-                                
-                                printf("%s\n", ifacedef.component); //remove this temporary test
-                                free(ifacedef.component); //this too. Move to main temp free
                             }
                             
                             obji = cJSON_GetObjectItem(obj, "interface");
@@ -326,14 +333,19 @@ int main(int argc, char **argv)
                                 ifacedef.interface_len = strlen(tmp);
                                 ifacedef.interface = malloc(++ifacedef.interface_len);
                                 strcpy(ifacedef.interface, tmp);
-                                
-                                printf("%s\n", ifacedef.interface); //remove this temporary test
-                                free(ifacedef.interface); //this too. Move to main temp free
                             }
                             
-                            //realloc linkdef interfaces
+                            //alloc the interface definition for the current link entry
+                            iface_def *tmp = realloc(linkdef.ifaces, sizeof(iface_def) * (linkdef.ifacec + 1));
+                            if(errcond(tmp != NULL, &err, 1))
+                            {
+                                linkdef.ifaces = tmp;
+                                memcpy(&linkdef.ifaces[linkdef.ifacec], &ifacedef, sizeof(ifacedef));
+                                linkdef.ifacec++;
+                            }
                         }
                         
+                        //alloc the current link entry
                         link_def *tmp = realloc(linkdefs, sizeof(link_def) * (linkdefc + 1));
                         if(errcond(tmp != NULL, &err, 1))
                         {
@@ -356,13 +368,23 @@ int main(int argc, char **argv)
             //  realloc shared memory
             //  iterate iface defs
             //      check interface rules
+            //          dlsym the component's plugin using the ifacedef's interface name to load the rule
             //      locate pointer specified in the iface def and point it to the current shared mem
             //  recycle the current shared memory if an error occured
         }
         else printf("System definition parsing failed with error code %i", err);
         
+        for(size_t i = 0; i < linkdefc; i++)
+        {
+            for(size_t j = 0; j < linkdefs[i].ifacec; j++)
+            {
+                free(linkdefs[i].ifaces[j].vm);
+                free(linkdefs[i].ifaces[j].component);
+                free(linkdefs[i].ifaces[j].interface);
+            }
+            free(linkdefs[i].ifaces);
+        }
         free(linkdefs);
-        //iterate this array and free everything inside
     }
     
     if(!err)
