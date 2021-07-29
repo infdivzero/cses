@@ -26,6 +26,8 @@
 
 //write the programmable parser before implementing multivm
 
+//all vms will store their component instances in one array to facilitate linkage
+
 /* estdlib.h */
 
 typedef struct {
@@ -34,9 +36,8 @@ typedef struct {
 } page_t;
 
 typedef struct {
-    size_t type,    //interface type. Must be equal in both interfaces in a link definition for linkage to occur
-           linkmax, //maximum number of interfaces allowed in one link definition entry
-           linkidx; //optional, not used by core but can be useful for plugins
+    uint8_t type[16]; //interface type. Must be equal in both interfaces in a link definition for linkage to occur. UUID
+    size_t  linkmax;  //maximum number of interfaces allowed in one link definition entry
 } iface_rule;
 
 /* defs */
@@ -141,6 +142,9 @@ int main(int argc, char **argv)
         err = ldfile(argv[1], &fdata, &flen);
         config = cJSON_ParseWithLength(fdata, flen);
         free(fdata);
+        
+        //adding and removing vm components requires a config reread and is done through the vm's config
+        //  and the load vm command; any vm modifications requires that the vm is reloaded
         
         if(config && !err)
         {
@@ -362,17 +366,86 @@ int main(int argc, char **argv)
     
         if(!err)
         {
-            exec = 1;
-            //link the components. This includes components from all systems
-            //iterate linkdefs
-            //  realloc shared memory
-            //  iterate iface defs
-            //      check interface rules
-            //          dlsym the component's plugin using the ifacedef's interface name to load the rule
-            //      locate pointer specified in the iface def and point it to the current shared mem
-            //  recycle the current shared memory if an error occured
+            //will need to rewrite this again to use recycled interface types instead of    <<< !!!
+            //  redundant interface rules
+            
+            //link processing addons? What about advanced modular connector rules?
+            //  (ie IO headers and different connector sizes and pinouts)
+            //  ^^^ might use pin count and pin offset to implement this
+            //  ^^^ link processing addons might be interesting but shouldn't be necessary if the
+            //      components do the processing
+            for(size_t i = 0; i < linkdefc; i++) //iterate retreived linkdefs
+            {
+                //to get the address of the link to point a component's pointer to, do a little math
+                
+                uint64_t *tmp = realloc(links, sizeof(uint64_t) * (linkc + 1) * linkdefs[i].ifacec);
+                if(errcond(tmp != NULL, &err, 1))
+                {
+                    links = tmp;
+                    
+                    iface_rule **rules = malloc(sizeof(iface_rule*) * linkdefs[i].ifacec);
+                    
+                    int valid = 1;
+                    
+                    size_t linkmax = 0;
+                    
+                    for(size_t j = 0; j < linkdefs[i].ifacec; j++)
+                    {
+                        size_t vmidx   = 0, //this will index an array which lists components it owns
+                               compidx = 0;
+                        
+                        for(size_t search = 0; search < componentc; search++) //search might fail somehow
+                        {
+                            if(strcmp(linkdefs[i].ifaces[j].component, components[search].componentname) == 0)
+                            {
+                                compidx = search;
+                                break;
+                            }
+                        }
+                        
+                        rules[j] = dlsym(components[compidx].plugin, linkdefs[i].ifaces[j].interface);
+                    }
+                    
+                    //iterate the rules and check if all interface types have the same UUID and the
+                    //  number of interfaces doesn't exceed linkmax
+                    for(size_t j = 0; j < linkdefs[i].ifacec; j++)
+                    {
+                        iface_rule *rule = rules[j];
+                        
+                        for(size_t k = 0; k < linkdefs[i].ifacec; k++)
+                        {
+                            char *UUIDa = (char*)rules[j]->type;
+                            char *UUIDb = (char*)rules[k]->type;
+                            if(strcmp(UUIDa, UUIDb) != 0)
+                            {
+                                valid = 0;
+                                break;
+                            }
+                        }
+                        
+                        //check linkmax > previous and record the largest
+                        if(j > 0 && rules[j - 1]->linkmax < rules[j]->linkmax) linkmax = rules[j]->linkmax;
+                        else linkmax = rules[j]->linkmax;
+                    }
+                    
+                    //check linkmax
+                    if(linkdefs[i].ifacec > linkmax) valid = 0;
+                    
+                    //if the linkdef is valid point the pointers and increment linkc
+                    if(errcond(valid, &err, 1))
+                    {
+                        //iterate the linkdef's interfaces
+                        //  if component == interface name, ptr = links[linkc - (ifacec - i)] <<< verify
+                        linkc += (linkc + 1) * linkdefs[i].ifacec;
+                    }
+                    
+                    free(rules);
+                }
+            }
+            
+            if(!err) exec = 1;
+            else printf("System definition parsing failed with error code %i", err);
         }
-        else printf("System definition parsing failed with error code %i", err);
         
         for(size_t i = 0; i < linkdefc; i++)
         {

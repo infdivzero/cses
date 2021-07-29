@@ -29,9 +29,9 @@ long_line_column=80
 
 [files]
 current_page=0
-FILE_NAME_0=3516;C;0;EUTF-8;0;1;0;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fsrc%2Fmain.c;0;4
-FILE_NAME_1=222;C++;0;EUTF-8;0;1;0;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fsrc%2Ftestplugin.h;0;4
-FILE_NAME_2=501;C;0;EUTF-8;0;1;0;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fsrc%2Ftestplugin.c;0;4
+FILE_NAME_0=18220;C;0;EUTF-8;0;1;0;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fsrc%2Fmain.c;0;4
+FILE_NAME_1=1051;C++;0;EUTF-8;0;1;0;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fsrc%2Ftestplugin.h;0;4
+FILE_NAME_2=12;C;0;EUTF-8;0;1;0;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fsrc%2Ftestplugin.c;0;4
 FILE_NAME_3=22;JSON;0;EUTF-8;0;1;1;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fbin%2Ftestconfig.json;0;4
 FILE_NAME_4=47;Sh;0;EUTF-8;0;1;0;%2Fhome%2Fstew%2FDocuments%2Fsoftdev%2Fcses%2Fbuild.sh;0;4
 
